@@ -21,7 +21,7 @@
       "assets/**/*"
     ],
     "mac": {
-      "target": ["zip"],
+      "target": ["dmg"],
       "icon": "assets/icon.icns",
       "category": "public.app-category.social-networking",
       "darkModeSupport": true
