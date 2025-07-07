@@ -12,7 +12,7 @@ async function createMainWindow() {
     minWidth: 800,
     minHeight: 600,
     backgroundColor: '#121212',
-    icon: path.join(__dirname, 'assets', 'winicon.png'),
+    icon: path.join(__dirname, 'assets', 'winicon.icns'),
     show: false,
     webPreferences: {
       contextIsolation: true,
