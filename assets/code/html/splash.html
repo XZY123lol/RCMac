@@ -2,101 +2,118 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ruscord Загрузка</title>
+  <meta name="viewport" content="width=300, initial-scale=1, user-scalable=no" />
+  <title>Ruscord_hello</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100vh;
-      background: #121212;
-      color: #ffffff;
-      font-family: sans-serif;
+      background-color: #121212;
+      color: white;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      height: 100vh;
       user-select: none;
-      opacity: 0;
-      transition: opacity 0.5s ease;
+      -webkit-app-region: drag;
     }
-    body.loaded {
-      opacity: 1;
+
+    .icon {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+      animation: heartbeat 1.5s infinite;
+      -webkit-app-region: no-drag;
     }
-    #logo {
-      width: 150px;
-      height: 150px;
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
+
+    @keyframes heartbeat {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+      50% { transform: scale(1.1); }
     }
-    #status {
-      margin-top: 20px;
-      font-size: 14px;
+
+    .status-text {
+      font-size: 16px;
+      margin-bottom: 20px;
       text-align: center;
-      min-height: 20px;
-      white-space: nowrap;
+      -webkit-app-region: no-drag;
     }
-    #progress-container {
-      margin-top: 10px;
+
+    .progress-wrapper {
       width: 80%;
-      height: 8px;
-      background: #333;
-      border-radius: 4px;
+      height: 12px;
+      background: #2c2c2c;
+      border-radius: 6px;
       overflow: hidden;
       display: none;
+      -webkit-app-region: no-drag;
     }
-    #progress-bar {
+
+    .progress-bar {
       height: 100%;
-      width: 0%;
-      background: #7289da;
-      box-shadow: 0 0 8px #7289da;
-      transition: width 0.3s ease;
+      width: 0;
+      background: #555555;
+      border-radius: 6px;
+      transition: width 0.2s ease-out;
+    }
+
+    #cancelBtn {
+      margin-top: 10px;
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      display: none;
+      -webkit-app-region: no-drag;
     }
   </style>
 </head>
 <body>
-  <img id="logo" src="./assets/Images/logonobg.png" alt="Ruscord logo" draggable="false" />
-  <div id="status">Проверка подключения к интернету...</div>
-  <div id="progress-container">
-    <div id="progress-bar"></div>
+  <img class="icon" src="../../Images/iconnobg.png" alt="Icon" />
+  <div class="status-text" id="status">Подключение к интернету...</div>
+  <div class="progress-wrapper">
+    <div class="progress-bar"></div>
   </div>
+  <button id="cancelBtn">Отмена</button>
+
   <script>
-    document.body.classList.add('loaded')
-    let interval = null
-    window.electronAPI.onStatusUpdate((text) => {
-      const statusEl = document.getElementById('status')
-      statusEl.innerText = text
-      if (text.startsWith('Подключение к интернету')) {
-        if (!interval) {
-          let seconds = 0
-          interval = setInterval(() => {
-            seconds++
-            statusEl.innerText = `Подключение к интернету... ${seconds} сек`
-          }, 1000)
-        }
-      } else {
-        if (interval) {
-          clearInterval(interval)
-          interval = null
-        }
+    function formatBytes(bytes) {
+      const units = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ', 'ПТ'];
+      let i = 0;
+      let num = bytes;
+      while (num >= 1024 && i < units.length - 1) {
+        num /= 1024;
+        i++;
       }
-    })
-    window.electronAPI.onProgressUpdate((percent) => {
-      const bar = document.getElementById('progress-bar')
-      bar.style.width = `${percent}%`
-      document.getElementById('progress-container').style.display = 'block'
-      if (percent >= 100) {
-        setTimeout(() => {
-          document.body.style.opacity = '0'
-          setTimeout(() => {
-            window.electronAPI.sendSplashFinished()
-          }, 500)
-        }, 300)
-      }
-    })
+      return `${num.toFixed(1)} ${units[i]}`;
+    }
+
+    const statusElem = document.getElementById('status');
+    const progressWrapper = document.querySelector('.progress-wrapper');
+    const progressBar = document.querySelector('.progress-bar');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    if (window.electron) {
+      window.electron.onStatus(text => {
+        statusElem.textContent = text;
+        if (text.includes('Скачано')) {
+          progressWrapper.style.display = 'block';
+          cancelBtn.style.display = 'inline-block';
+        } else if (text === 'Запуск...') {
+          progressWrapper.style.display = 'none';
+          cancelBtn.style.display = 'none';
+        }
+      });
+
+      window.electron.onProgress((downloaded, total, speed) => {
+        const percent = downloaded / total;
+        progressBar.style.width = `${Math.min(100, percent * 100)}%`;
+        statusElem.textContent = `Скачано ${formatBytes(downloaded)} из ${formatBytes(total)} (${formatBytes(speed)}/с)`;
+      });
+
+      cancelBtn.onclick = () => {
+        window.electron.send('cancel-download');
+      };
+    }
   </script>
 </body>
 </html>
